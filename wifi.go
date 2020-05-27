@@ -79,7 +79,7 @@ Interface:
 		}
 
 		// disconnected, ensure dhcp client is stopped:
-		if w.dhcpClient.Process != nil {
+		if w.dhcpClient != nil && w.dhcpClient.Process != nil {
 			w.dhcpClient.Process.Kill()
 		}
 		w.dhcpClient = nil
