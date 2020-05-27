@@ -21,6 +21,7 @@ import (
 	"log"
 	"net"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"time"
 
@@ -33,33 +34,63 @@ type wifiConfig struct {
 	SSID string `json:"ssid"`
 }
 
-func control1(cl *wifi.Client, interfaces []*wifi.Interface, cfg *wifiConfig) error {
+type wifiCtx struct {
+	// config
+	cl         *wifi.Client
+	interfaces []*wifi.Interface
+	cfg        *wifiConfig
+
+	// state
+	dhcpClient     *exec.Cmd
+	connectedSince time.Duration
+}
+
+func (w *wifiCtx) control1() error {
 Interface:
-	for _, intf := range interfaces {
-		stationInfos, err := cl.StationInfo(intf)
+	for _, intf := range w.interfaces {
+		stationInfos, err := w.cl.StationInfo(intf)
 		if err != nil && !errors.Is(err, os.ErrNotExist) /* not connected */ {
 			return err
 		}
 		for _, sta := range stationInfos {
-			if !bytes.Equal(sta.HardwareAddr, net.HardwareAddr{}) {
-				log.Printf("connected to %v for %v, signal %v",
-					sta.HardwareAddr,
-					sta.Connected,
-					sta.Signal)
-				// TODO: ensure a dhcp4 client is up for intf.Name
+			if bytes.Equal(sta.HardwareAddr, net.HardwareAddr{}) {
+				continue
+			}
+			log.Printf("connected to %v for %v, signal %v",
+				sta.HardwareAddr,
+				sta.Connected,
+				sta.Signal)
+			if sta.Connected < w.connectedSince {
+				// reconnected. restart dhcp client
+				if w.dhcpClient.Process != nil {
+					w.dhcpClient.Process.Kill()
+				}
+				w.dhcpClient = nil
+			}
+			if w.dhcpClient != nil {
 				continue Interface
 			}
+			w.dhcpClient = exec.Command("/gokrazy/dhcp", "-interface=wlan0")
+			w.dhcpClient.Stdout = os.Stdout
+			w.dhcpClient.Stderr = os.Stderr
+			log.Printf("starting %v", w.dhcpClient.Args)
+			w.dhcpClient.Start()
+			continue Interface
 		}
 
-		// TODO: ensure any dhcp4 clients for intf.Name are killed
+		// disconnected, ensure dhcp client is stopped:
+		if w.dhcpClient.Process != nil {
+			w.dhcpClient.Process.Kill()
+		}
+		w.dhcpClient = nil
 
 		// Interface is not associated with station, try connecting:
-		if err := cl.Connect(intf, cfg.SSID); err != nil {
+		if err := w.cl.Connect(intf, w.cfg.SSID); err != nil {
 			// -EALREADY means already connected, but misleadingly
 			// stringifies to “operation already in progress”
 			log.Printf("could not connect: %v", err)
 		} else {
-			log.Printf("connecting to SSID %q...", cfg.SSID)
+			log.Printf("connecting to SSID %q...", w.cfg.SSID)
 		}
 	}
 	return nil
@@ -151,6 +182,12 @@ func logic() error {
 		return fmt.Errorf("no interfaces found")
 	}
 
+	w := &wifiCtx{
+		cl:         cl,
+		interfaces: interfaces,
+		cfg:        &cfg,
+	}
+
 	cs, err := iface.NewConfigSocket("wlan0")
 	if err != nil {
 		return fmt.Errorf("config socket: %v", err)
@@ -164,7 +201,7 @@ func logic() error {
 
 	const controlLoopFrequency = 15 * time.Second
 	for {
-		if err := control1(cl, interfaces, &cfg); err != nil {
+		if err := w.control1(); err != nil {
 			log.Printf("control1: %v", err)
 		}
 		time.Sleep(controlLoopFrequency)
