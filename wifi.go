@@ -1,8 +1,20 @@
 // wifi is a daemon that tries joining a pre-configured WiFi network.
+//
+// Example:
+//   Create a WiFi configuration file,
+//   either via https://github.com/gokrazy/breakglass,
+//   or by mounting the SD card on the host:
+//   # echo '{"ssid": "I/O Tee"}' > /perm/wifi.json
+//
+//   Include the wifi package in your gokr-packer command:
+//   % gokr-packer -update=yes \
+//     github.com/gokrazy/breakglass \
+//     github.com/gokrazy/wifi
 package main
 
 import (
 	"bytes"
+	"encoding/json"
 	"errors"
 	"fmt"
 	"io/ioutil"
@@ -12,10 +24,16 @@ import (
 	"path/filepath"
 	"time"
 
+	"github.com/gokrazy/gokrazy"
+	"github.com/gokrazy/internal/iface"
 	"github.com/mdlayher/wifi"
 )
 
-func control1(cl *wifi.Client, interfaces []*wifi.Interface) error {
+type wifiConfig struct {
+	SSID string `json:"ssid"`
+}
+
+func control1(cl *wifi.Client, interfaces []*wifi.Interface, cfg *wifiConfig) error {
 Interface:
 	for _, intf := range interfaces {
 		stationInfos, err := cl.StationInfo(intf)
@@ -36,12 +54,12 @@ Interface:
 		// TODO: ensure any dhcp4 clients for intf.Name are killed
 
 		// Interface is not associated with station, try connecting:
-		if err := cl.Connect(intf, "I/O Tee"); err != nil {
+		if err := cl.Connect(intf, cfg.SSID); err != nil {
 			// -EALREADY means already connected, but misleadingly
 			// stringifies to “operation already in progress”
 			log.Printf("could not connect: %v", err)
 		} else {
-			log.Printf("connecting...")
+			log.Printf("connecting to SSID %q...", cfg.SSID)
 		}
 	}
 	return nil
@@ -99,7 +117,18 @@ func feedFirmware() error {
 }
 
 func logic() error {
-	// TODO: read configuration data
+	b, err := ioutil.ReadFile("/perm/wifi.json")
+	if err != nil {
+		if os.IsNotExist(err) {
+			// No config file? Nothing to do!
+			gokrazy.DontStartOnBoot()
+		}
+		return err
+	}
+	var cfg wifiConfig
+	if err := json.Unmarshal(b, &cfg); err != nil {
+		return err
+	}
 
 	// If the brcmfmac driver is asking,
 	// feed it the firmware via sysfs.
@@ -109,8 +138,6 @@ func logic() error {
 	if err := feedFirmware(); err != nil {
 		return fmt.Errorf("feeding firmware to brcmfmac driver: %v", err)
 	}
-
-	// TODO: ip link set dev wlan0 up
 
 	cl, err := wifi.New()
 	if err != nil {
@@ -123,9 +150,21 @@ func logic() error {
 	if len(interfaces) == 0 {
 		return fmt.Errorf("no interfaces found")
 	}
+
+	cs, err := iface.NewConfigSocket("wlan0")
+	if err != nil {
+		return fmt.Errorf("config socket: %v", err)
+	}
+	defer cs.Close()
+
+	// Ensure the interface is up so that we can send DHCP packets.
+	if err := cs.Up(); err != nil {
+		log.Printf("setting link wlan0 up: %v", err)
+	}
+
 	const controlLoopFrequency = 15 * time.Second
 	for {
-		if err := control1(cl, interfaces); err != nil {
+		if err := control1(cl, interfaces, &cfg); err != nil {
 			log.Printf("control1: %v", err)
 		}
 		time.Sleep(controlLoopFrequency)
