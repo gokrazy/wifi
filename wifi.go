@@ -33,6 +33,7 @@ import (
 
 type wifiConfig struct {
 	SSID string `json:"ssid"`
+	PSK  string `json:"psk"`
 }
 
 type wifiCtx struct {
@@ -86,12 +87,22 @@ Interface:
 		w.dhcpClient = nil
 
 		// Interface is not associated with station, try connecting:
-		if err := w.cl.Connect(intf, w.cfg.SSID); err != nil {
-			// -EALREADY means already connected, but misleadingly
-			// stringifies to “operation already in progress”
-			log.Printf("could not connect: %v", err)
+		if w.cfg.PSK != "" {
+			if err := w.cl.ConnectWPAPSK(intf, w.cfg.SSID, w.cfg.PSK); err != nil {
+				// -EALREADY means already connected, but misleadingly
+				// stringifies to “operation already in progress”
+				log.Printf("could not connect: %v", err)
+			} else {
+				log.Printf("connecting to SSID %q...", w.cfg.SSID)
+			}
 		} else {
-			log.Printf("connecting to SSID %q...", w.cfg.SSID)
+			if err := w.cl.Connect(intf, w.cfg.SSID); err != nil {
+				// -EALREADY means already connected, but misleadingly
+				// stringifies to “operation already in progress”
+				log.Printf("could not connect: %v", err)
+			} else {
+				log.Printf("connecting to SSID %q...", w.cfg.SSID)
+			}
 		}
 	}
 	return nil
