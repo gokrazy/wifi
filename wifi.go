@@ -28,6 +28,7 @@ import (
 	"github.com/gokrazy/gokrazy"
 	"github.com/gokrazy/internal/iface"
 	"github.com/mdlayher/wifi"
+	"golang.org/x/sys/unix"
 )
 
 type wifiConfig struct {
@@ -147,6 +148,32 @@ func feedFirmware() error {
 	return nil
 }
 
+var release = func() string {
+	var uts unix.Utsname
+	if err := unix.Uname(&uts); err != nil {
+		fmt.Fprintf(os.Stderr, "minitrd: %v\n", err)
+		os.Exit(1)
+	}
+	return string(uts.Release[:bytes.IndexByte(uts.Release[:], 0)])
+}()
+
+func loadModule(mod string) error {
+	f, err := os.Open(filepath.Join("/lib/modules", release, mod))
+	if err != nil {
+		return err
+	}
+	defer f.Close()
+	if err := unix.FinitModule(int(f.Fd()), "", 0); err != nil {
+		if err != unix.EEXIST &&
+			err != unix.EBUSY &&
+			err != unix.ENODEV &&
+			err != unix.ENOENT {
+			return fmt.Errorf("FinitModule(%v): %v", mod, err)
+		}
+	}
+	return nil
+}
+
 func logic() error {
 	b, err := ioutil.ReadFile("/perm/wifi.json")
 	if err != nil {
@@ -160,6 +187,18 @@ func logic() error {
 	if err := json.Unmarshal(b, &cfg); err != nil {
 		return err
 	}
+
+	// modprobe the brcmfmac driver
+	for _, mod := range []string{
+		"kernel/drivers/net/wireless/broadcom/brcm80211/brcmutil/brcmutil.ko",
+		"kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko",
+	} {
+		if err := loadModule(mod); err != nil && !os.IsNotExist(err) {
+			return err
+		}
+	}
+
+	// TODO: remove the following code path once firmware files are included in the root file system:
 
 	// If the brcmfmac driver is asking,
 	// feed it the firmware via sysfs.
