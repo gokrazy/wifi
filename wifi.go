@@ -108,57 +108,6 @@ Interface:
 	return nil
 }
 
-func feedFirmware() error {
-	for _, fw := range []struct {
-		loaderPath   string
-		firmwarePath string
-	}{
-		{
-			loaderPath:   "brcm!brcmfmac43455-sdio.bin",
-			firmwarePath: "third_party/firmware-nonfree/brcmfmac43455-sdio.bin",
-		},
-
-		{
-			loaderPath:   "brcm!brcmfmac43455-sdio.raspberrypi,4-model-b.txt",
-			firmwarePath: "third_party/firmware-nonfree/brcmfmac43455-sdio.txt",
-		},
-
-		{
-			loaderPath:   "brcm!brcmfmac43455-sdio.txt",
-			firmwarePath: "third_party/firmware-nonfree/brcmfmac43455-sdio.txt",
-		},
-
-		{
-			loaderPath:   "brcm!brcmfmac43455-sdio.clm_blob",
-			firmwarePath: "third_party/firmware-nonfree/brcmfmac43455-sdio.clm_blob",
-		},
-	} {
-		loadingFn := filepath.Join("/sys/class/firmware", fw.loaderPath, "loading")
-		if err := ioutil.WriteFile(loadingFn, []byte("1\n"), 0644); err != nil {
-			if os.IsNotExist(err) {
-				continue // already loaded or loading timed out
-			}
-			return err
-		}
-
-		b := firmware[fw.firmwarePath]
-		log.Printf("feeding firmware (%d bytes) to brcmfmac via sysfs/%s",
-			len(b),
-			fw.loaderPath)
-		if err := ioutil.WriteFile(
-			filepath.Join("/sys/class/firmware/", fw.loaderPath, "data"),
-			b,
-			0644); err != nil {
-			return err
-		}
-
-		if err := ioutil.WriteFile(loadingFn, []byte("0\n"), 0644); err != nil {
-			return err
-		}
-	}
-	return nil
-}
-
 var release = func() string {
 	var uts unix.Utsname
 	if err := unix.Uname(&uts); err != nil {
@@ -207,17 +156,6 @@ func logic() error {
 		if err := loadModule(mod); err != nil && !os.IsNotExist(err) {
 			return err
 		}
-	}
-
-	// TODO: remove the following code path once firmware files are included in the root file system:
-
-	// If the brcmfmac driver is asking,
-	// feed it the firmware via sysfs.
-	// This assumes we are running early at boot,
-	// before the sysfs firmware load times out,
-	// which is the case for gokrazy packages :)
-	if err := feedFirmware(); err != nil {
-		return fmt.Errorf("feeding firmware to brcmfmac driver: %v", err)
 	}
 
 	cl, err := wifi.New()
