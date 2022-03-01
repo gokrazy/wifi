@@ -136,6 +136,9 @@ func loadModule(mod string) error {
 
 func logic() error {
 	b, err := ioutil.ReadFile("/perm/wifi.json")
+	if err != nil && os.IsNotExist(err) {
+		b, err = ioutil.ReadFile("/etc/wifi.json")
+	}
 	if err != nil {
 		if os.IsNotExist(err) {
 			// No config file? Nothing to do!
