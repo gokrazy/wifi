@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"syscall"
 	"time"
 
 	"github.com/gokrazy/gokrazy"
@@ -75,6 +76,13 @@ Interface:
 				continue Interface
 			}
 			w.dhcpClient = exec.Command("/gokrazy/dhcp", "-interface=wlan0")
+			w.dhcpClient.SysProcAttr = &syscall.SysProcAttr{
+				// When the wifi process dies, make the kernel send a SIGTERM to
+				// the dhcp process, too. The bake CI test runner uses
+				// exec.CommandContext("wifi") which sends SIGKILL, so trying to
+				// clean up the dhcp process from within wifi is fruitless.
+				Pdeathsig: syscall.SIGTERM,
+			}
 			w.dhcpClient.Stdout = os.Stdout
 			w.dhcpClient.Stderr = os.Stderr
 			log.Printf("starting %v", w.dhcpClient.Args)
