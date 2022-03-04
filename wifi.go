@@ -16,6 +16,7 @@ import (
 	"bytes"
 	"encoding/json"
 	"errors"
+	"flag"
 	"fmt"
 	"io/ioutil"
 	"log"
@@ -135,20 +136,35 @@ func loadModule(mod string) error {
 }
 
 func logic() error {
-	b, err := ioutil.ReadFile("/perm/wifi.json")
-	if err != nil && os.IsNotExist(err) {
-		b, err = ioutil.ReadFile("/etc/wifi.json")
-	}
-	if err != nil {
-		if os.IsNotExist(err) {
-			// No config file? Nothing to do!
-			gokrazy.DontStartOnBoot()
-		}
-		return err
-	}
+	var (
+		ssid = flag.String("ssid",
+			"",
+			"if non-empty, the ssid of the WiFi network to connect to. if empty, /perm/wifi.json or /etc/wifi.json will be used")
+		psk = flag.String("psk",
+			"",
+			"if non-empty, the psk of the WiFi network to connect to. if empty, /perm/wifi.json or /etc/wifi.json will be used")
+	)
+	flag.Parse()
 	var cfg wifiConfig
-	if err := json.Unmarshal(b, &cfg); err != nil {
-		return err
+	if *ssid != "" {
+		cfg.SSID = *ssid
+		cfg.PSK = *psk
+	} else {
+		b, err := ioutil.ReadFile("/perm/wifi.json")
+		if err != nil && os.IsNotExist(err) {
+			b, err = ioutil.ReadFile("/etc/wifi.json")
+		}
+		if err != nil {
+			if os.IsNotExist(err) {
+				// No config file? Nothing to do!
+				gokrazy.DontStartOnBoot()
+			}
+			return err
+		}
+
+		if err := json.Unmarshal(b, &cfg); err != nil {
+			return err
+		}
 	}
 
 	// modprobe the brcmfmac driver
