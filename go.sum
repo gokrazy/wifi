@@ -39,6 +39,8 @@ github.com/mdlayher/wifi v0.0.0-20200527114002-84f0b9457fdd h1:50p1vPNK43pzCVX10
 github.com/mdlayher/wifi v0.0.0-20200527114002-84f0b9457fdd/go.mod h1:Evt/EIne46u9PtQbeTx2NTcqURpr5K4SvKtGmBuDPN8=
 github.com/mdlayher/wifi v0.0.0-20220301010916-69d50f560636 h1:oAz409qRKzfHSuM/KcZS28hnA79ny9pHWq8lOBcwmPw=
 github.com/mdlayher/wifi v0.0.0-20220301010916-69d50f560636/go.mod h1:kFsjrqYVzpY9sDfMqPhXrYHk7r5RdhkedOWo2GR8m7g=
+github.com/mdlayher/wifi v0.0.0-20220304193601-dc6fbe340232 h1:7U8LBAhr2w8t27cYL6VROnrUeNAFV/4X1Fux0Of8III=
+github.com/mdlayher/wifi v0.0.0-20220304193601-dc6fbe340232/go.mod h1:kFsjrqYVzpY9sDfMqPhXrYHk7r5RdhkedOWo2GR8m7g=
 github.com/pmezard/go-difflib v1.0.0/go.mod h1:iKH77koFhYxTK1pcRnkKkqfTogsbg7gZNVY4sRDYZ/4=
 github.com/rtr7/dhcp4 v0.0.0-20181120124042-778e8c2e24a5/go.mod h1:FwstIpm6vX98QgtR8KEwZcVjiRn2WP76LjXAHj84fK0=
 github.com/stretchr/objx v0.1.0/go.mod h1:HFkY916IF+rwdDfMAkV7OtwuqBVzrE8GR6GFx+wExME=

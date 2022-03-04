@@ -138,16 +138,21 @@ func loadModule(mod string) error {
 
 func logic() error {
 	var (
+		disconnect = flag.Bool("disconnect",
+			false,
+			"instead of connecting to a WiFi network, disconnect the interface and exit")
+
 		ssid = flag.String("ssid",
 			"",
 			"if non-empty, the ssid of the WiFi network to connect to. if empty, /perm/wifi.json or /etc/wifi.json will be used")
+
 		psk = flag.String("psk",
 			"",
 			"if non-empty, the psk of the WiFi network to connect to. if empty, /perm/wifi.json or /etc/wifi.json will be used")
 	)
 	flag.Parse()
 	var cfg wifiConfig
-	if *ssid != "" {
+	if *ssid != "" || *disconnect {
 		cfg.SSID = *ssid
 		cfg.PSK = *psk
 	} else {
@@ -188,6 +193,15 @@ func logic() error {
 	}
 	if len(interfaces) == 0 {
 		return fmt.Errorf("no interfaces found")
+	}
+
+	if *disconnect {
+		for _, intf := range interfaces {
+			if err := cl.Disconnect(intf); err != nil {
+				return err
+			}
+		}
+		return nil
 	}
 
 	w := &wifiCtx{
