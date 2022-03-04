@@ -24,6 +24,7 @@ import (
 	"os"
 	"os/exec"
 	"path/filepath"
+	"strings"
 	"time"
 
 	"github.com/gokrazy/gokrazy"
@@ -200,6 +201,12 @@ func logic() error {
 		return fmt.Errorf("config socket: %v", err)
 	}
 	defer cs.Close()
+
+	b, err := ioutil.ReadFile("/sys/class/net/wlan0/address")
+	if err != nil {
+		return fmt.Errorf("reading /sys/class/net/wlan0/address: %v", err)
+	}
+	log.Printf("wlan0 MAC address is %s", strings.TrimSpace(string(b)))
 
 	// Ensure the interface is up so that we can send DHCP packets.
 	if err := cs.Up(); err != nil {
