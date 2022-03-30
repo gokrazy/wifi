@@ -5,7 +5,7 @@ go 1.18
 require (
 	github.com/gokrazy/gokrazy v0.0.0-20200525165608-c2116a79ed31
 	github.com/gokrazy/internal v0.0.0-20200527063429-7e4057347a0f
-	github.com/mdlayher/wifi v0.0.0-20220320220353-954ff73a19a5
+	github.com/mdlayher/wifi v0.0.0-20220330172155-a44c70b6d3c8
 	golang.org/x/sys v0.0.0-20220319134239-a9b59b0215f8
 )
 
