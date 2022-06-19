@@ -25,6 +25,7 @@ import (
 	"os/exec"
 	"path/filepath"
 	"strings"
+	"sync"
 	"syscall"
 	"time"
 
@@ -46,6 +47,7 @@ type wifiCtx struct {
 	cfg        *wifiConfig
 
 	// state
+	dhcpClientMu   sync.Mutex
 	dhcpClient     *exec.Cmd
 	connectedSince time.Duration
 }
@@ -61,6 +63,7 @@ Interface:
 			if bytes.Equal(sta.HardwareAddr, net.HardwareAddr{}) {
 				continue
 			}
+			w.dhcpClientMu.Lock()
 			log.Printf("connected to %v for %v, signal %v",
 				sta.HardwareAddr,
 				sta.Connected,
@@ -73,6 +76,7 @@ Interface:
 				w.dhcpClient = nil
 			}
 			if w.dhcpClient != nil {
+				w.dhcpClientMu.Unlock()
 				continue Interface
 			}
 			w.dhcpClient = exec.Command("/gokrazy/dhcp", "-interface=wlan0")
@@ -87,14 +91,28 @@ Interface:
 			w.dhcpClient.Stderr = os.Stderr
 			log.Printf("starting %v", w.dhcpClient.Args)
 			w.dhcpClient.Start()
+			go func() {
+				w.dhcpClientMu.Lock()
+				dhcpClient := w.dhcpClient
+				w.dhcpClientMu.Unlock()
+				if err := dhcpClient.Wait(); err != nil {
+					log.Printf("dhcp process failed: %v", err)
+				}
+				w.dhcpClientMu.Lock()
+				w.dhcpClient = nil
+				w.dhcpClientMu.Unlock()
+			}()
+			w.dhcpClientMu.Unlock()
 			continue Interface
 		}
 
 		// disconnected, ensure dhcp client is stopped:
+		w.dhcpClientMu.Lock()
 		if w.dhcpClient != nil && w.dhcpClient.Process != nil {
 			w.dhcpClient.Process.Kill()
 		}
 		w.dhcpClient = nil
+		w.dhcpClientMu.Unlock()
 
 		// Interface is not associated with station, try connecting:
 		if w.cfg.PSK != "" {
