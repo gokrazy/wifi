@@ -1,15 +1,16 @@
 // wifi is a daemon that tries joining a pre-configured WiFi network.
 //
 // Example:
-//   Create a WiFi configuration file,
-//   either via https://github.com/gokrazy/breakglass,
-//   or by mounting the SD card on the host:
-//   # echo '{"ssid": "I/O Tee"}' > /perm/wifi.json
 //
-//   Include the wifi package in your gokr-packer command:
-//   % gokr-packer -update=yes \
-//     github.com/gokrazy/breakglass \
-//     github.com/gokrazy/wifi
+//	Create a WiFi configuration file,
+//	either via https://github.com/gokrazy/breakglass,
+//	or by mounting the SD card on the host:
+//	# echo '{"ssid": "I/O Tee"}' > /perm/wifi.json
+//
+//	Include the wifi package in your gokr-packer command:
+//	% gokr-packer -update=yes \
+//	  github.com/gokrazy/breakglass \
+//	  github.com/gokrazy/wifi
 package main
 
 import (
