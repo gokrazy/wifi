@@ -1,6 +1,6 @@
 module github.com/gokrazy/wifi
 
-go 1.18
+go 1.24
 
 require (
 	github.com/gokrazy/gokrazy v0.0.0-20200525165608-c2116a79ed31
