@@ -205,6 +205,7 @@ func logic() error {
 		"kernel/drivers/net/wireless/broadcom/brcm80211/brcmutil/brcmutil.ko",
 		"kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/brcmfmac.ko",
 		"kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/wcc/brcmfmac-wcc.ko",
+		"kernel/drivers/net/wireless/broadcom/brcm80211/brcmfmac/cyw/brcmfmac-cyw.ko",
 	} {
 		if err := loadModule(mod); err != nil && !os.IsNotExist(err) {
 			return err
