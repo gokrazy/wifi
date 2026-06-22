@@ -249,7 +249,7 @@ func logic() error {
 		return fmt.Errorf("failed to reload the wireless regulatory database: %w", err)
 	}
 
-	if err := cl.SetRegulatoryRegion(cfg.Region); err != nil {
+	if err := cl.SetRegulatoryRegion(cfg.Region, wifi.RegulatoryHintUser); err != nil {
 		return fmt.Errorf("failed to set %s as the regulatory region: %w", cfg.Region, err)
 	}
 
