@@ -36,9 +36,13 @@ import (
 	"golang.org/x/sys/unix"
 )
 
+// worldRegulatoryRegion is a restrictive, safe default if the wireless regulatory region is not known.
+const worldRegulatoryRegion = "00"
+
 type wifiConfig struct {
-	SSID string `json:"ssid"`
-	PSK  string `json:"psk"`
+	SSID   string `json:"ssid"`
+	PSK    string `json:"psk"`
+	Region string `json:"region"`
 }
 
 type wifiCtx struct {
@@ -176,12 +180,17 @@ func logic() error {
 		psk = flag.String("psk",
 			"",
 			"if non-empty, the psk of the WiFi network to connect to. if empty, /perm/wifi.json or /etc/wifi.json will be used")
+
+		region = flag.String("region",
+			"",
+			"if non-empty, the wireless regulatory region (ISO 3166-1 alpha-2). if empty, /perm/wifi.json or /etc/wifi.json will be used")
 	)
 	flag.Parse()
 	var cfg wifiConfig
 	if *ssid != "" || *disconnect {
 		cfg.SSID = *ssid
 		cfg.PSK = *psk
+		cfg.Region = *region
 	} else {
 		b, err := ioutil.ReadFile("/perm/wifi.json")
 		if err != nil && os.IsNotExist(err) {
@@ -198,6 +207,10 @@ func logic() error {
 		if err := json.Unmarshal(b, &cfg); err != nil {
 			return err
 		}
+	}
+
+	if cfg.Region == "" {
+		cfg.Region = worldRegulatoryRegion
 	}
 
 	// modprobe the brcmfmac driver
@@ -232,6 +245,16 @@ func logic() error {
 		}
 		return nil
 	}
+
+	if err := cl.ReloadRegulatoryDatabase(); err != nil {
+		return fmt.Errorf("failed to reload the wireless regulatory database: %w", err)
+	}
+
+	if err := cl.SetRegulatoryRegion(cfg.Region, wifi.RegulatoryHintUser); err != nil {
+		return fmt.Errorf("failed to set %s as the regulatory region: %w", cfg.Region, err)
+	}
+
+	log.Printf("requested wireless regulatory region %s", cfg.Region)
 
 	w := &wifiCtx{
 		cl:         cl,
