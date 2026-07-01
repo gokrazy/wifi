@@ -1,3 +1,5 @@
+github.com/fsnotify/fsnotify v1.10.1 h1:b0/UzAf9yR5rhf3RPm9gf3ehBPpf0oZKIjtpKrx59Ho=
+github.com/fsnotify/fsnotify v1.10.1/go.mod h1:TLheqan6HD6GBK6PrDWyDPBaEV8LspOxvPSjC+bVfgo=
 github.com/gokrazy/gokrazy v0.0.0-20260218074004-791851666ca2 h1:3diV54purUiHmge4KdjwXDzjnzcbBWe6pqzdUQG7KvU=
 github.com/gokrazy/gokrazy v0.0.0-20260218074004-791851666ca2/go.mod h1:NtMkrFeDGnwldKLi0dLdd2ipNwoVa7TI4HTxsy7lFRg=
 github.com/gokrazy/internal v0.0.0-20260109072635-00a332bd5e47 h1:sVShuz8LXAcIe8xLw8E+qXW6iVx1oz/RcplV94v6fvo=
