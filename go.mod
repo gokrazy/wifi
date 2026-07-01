@@ -3,6 +3,7 @@ module github.com/gokrazy/wifi
 go 1.25.0
 
 require (
+	github.com/fsnotify/fsnotify v1.10.1
 	github.com/gokrazy/gokrazy v0.0.0-20260218074004-791851666ca2
 	github.com/gokrazy/internal v0.0.0-20260109072635-00a332bd5e47
 	github.com/mdlayher/wifi v0.8.0
